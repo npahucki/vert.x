@@ -19,11 +19,7 @@ package org.vertx.java.core.json;
 import org.vertx.java.core.http.impl.ws.Base64;
 import org.vertx.java.core.json.impl.Json;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Represents a JSON array
@@ -95,7 +91,11 @@ public class JsonArray implements Iterable<Object> {
   public int size() {
     return list.size();
   }
-
+  
+  public Object get(final int index) {
+    return convertObject(list.get(index));
+  }
+  
   public Iterator<Object> iterator() {
     return new Iterator<Object>() {
 
@@ -107,17 +107,9 @@ public class JsonArray implements Iterable<Object> {
       }
 
       @SuppressWarnings("unchecked")
-	  @Override
+      @Override
       public Object next() {
-        Object next = iter.next();
-        if (next != null) {
-          if (next instanceof List) {
-            next = new JsonArray((List<Object>) next);
-          } else if (next instanceof Map) {
-            next = new JsonObject((Map<String, Object>) next);
-          }
-        }
-        return next;
+        return convertObject(iter.next());
       }
 
       @Override
@@ -177,5 +169,19 @@ public class JsonArray implements Iterable<Object> {
       }
     }
     return arr;
+  }
+  
+  private static Object convertObject(final Object obj) {
+    Object retVal = obj;
+    
+    if (obj != null) {
+      if (obj instanceof List) {
+        retVal = new JsonArray((List<Object>) obj);
+      } else if (obj instanceof Map) {
+        retVal = new JsonObject((Map<String, Object>) obj);
+      }
+    }
+    
+    return retVal;
   }
 }

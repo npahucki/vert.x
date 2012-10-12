@@ -74,8 +74,6 @@ $APP_HOME/vertx-lang/vertx-lang-jruby/build/libs/*:$APP_HOME/vertx-lang/vertx-la
 $APP_HOME/vertx-lang/vertx-lang-rhino/build/libs/*:\
 $APP_HOME/src/dist/conf
 
-echo $APP_HOME
-
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
     if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
@@ -173,4 +171,4 @@ function splitJvmOpts() {
 }
 eval splitJvmOpts $DEFAULT_JVM_OPTS $JAVA_OPTS $VERTX_OPTS
 
-exec "$JAVACMD" "${JVM_OPTS[@]}" -Dvertx.install=$APP_HOME -Djava.util.logging.config.file=$APP_HOME/src/dist/conf/logging.properties -Djruby.home=$JRUBY_HOME -classpath "$CLASSPATH" org.vertx.java.deploy.impl.cli.Starter "$@"
+exec "$JAVACMD" "${JVM_OPTS[@]}" -Djava.util.logging.config.file=$APP_HOME/src/dist/conf/logging.properties -Djruby.home=$JRUBY_HOME -classpath "$CLASSPATH" org.vertx.java.deploy.impl.cli.Starter "$@"

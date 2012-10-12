@@ -32,11 +32,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -205,7 +201,7 @@ public class TestBase extends TestCase {
       }
     };
 
-    verticleManager.deployVerticle(worker, main, config, new URL[]{url}, instances, null, doneHandler);
+    verticleManager.deployVerticle(worker, main, config, new URL[]{url}, instances, null, null, doneHandler);
 
     if (!doneLatch.await(30, TimeUnit.SECONDS)) {
       throw new IllegalStateException("Timedout waiting for apps to start");

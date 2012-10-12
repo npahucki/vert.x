@@ -29,12 +29,7 @@ import org.vertx.java.deploy.impl.VerticleManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.URL;
+import java.net.*;
 import java.util.Enumeration;
 import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
@@ -48,8 +43,7 @@ public class Starter {
 
   private static final Logger log = LoggerFactory.getLogger(Starter.class);
 
-  private static final String CP_SEPARATOR =
-    System.getProperty("os.name").startsWith("Windows") ? ";" : ":";
+  private static final String CP_SEPARATOR = System.getProperty("path.separator");
 
   private static final String VERSION = "vert.x-1.2.3.final";
 
@@ -218,7 +212,8 @@ public class Starter {
     if (module) {
       mgr.deployMod(main, conf, instances, null, doneHandler);
     } else {
-      mgr.deployVerticle(worker, main, conf, urls, instances, null, doneHandler);
+      String includes = args.map.get("-includes");
+      mgr.deployVerticle(worker, main, conf, urls, instances, null, includes, doneHandler);
     }
 
     addShutdownHook();
@@ -299,6 +294,9 @@ public class Starter {
 "                               Default is vert-x.github.com/vertx-mods\n" +
 "        -worker                if specified then the verticle is a worker\n" +
 "                               verticle.\n" +
+"        -includes <mod_list>   optional comma separated list of modules\n" +
+"                               which will be added to the classpath of\n" +
+"                               the verticle.\n" +
 "        -cluster               if specified then the vert.x instance will form a\n" +
 "                               cluster with any other vert.x instances on the\n" +
 "                               network.\n" +

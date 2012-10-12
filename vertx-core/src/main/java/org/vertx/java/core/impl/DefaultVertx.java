@@ -45,11 +45,7 @@ import org.vertx.java.core.sockjs.impl.DefaultSockJSServer;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -209,7 +205,7 @@ public class DefaultVertx extends VertxInternal {
         result = workerPool;
         if (result == null) {
           ExecutorService corePool = Executors.newFixedThreadPool(corePoolSize, new VertxThreadFactory("vert.x-core-thread-"));
-          workerPool = result = new NioWorkerPool(corePool, corePoolSize, false);
+          workerPool = result = new NioWorkerPool(corePool, corePoolSize);
         }
       }
     }
@@ -231,7 +227,6 @@ public class DefaultVertx extends VertxInternal {
     }
     return result;
   }
-
 
   public Context getOrAssignContext() {
     Context ctx = Context.getContext();
