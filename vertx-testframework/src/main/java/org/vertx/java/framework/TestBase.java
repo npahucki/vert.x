@@ -45,8 +45,10 @@ public class TestBase extends TestCase {
 
   public static final String EVENTS_ADDRESS = "__test_events";
 
+  // A single Vertx and VerticleManager for <b>ALL</b> tests
   protected static VertxInternal vertx = new DefaultVertx();
   private static VerticleManager verticleManager = new VerticleManager(vertx);
+
   private BlockingQueue<JsonObject> events = new LinkedBlockingQueue<>();
   private TestUtils tu = new TestUtils(vertx);
   private volatile Handler<Message<JsonObject>> handler;
@@ -131,6 +133,8 @@ public class TestBase extends TestCase {
         }
         events.clear();
         vertx.eventBus().unregisterHandler(EVENTS_ADDRESS, handler);
+        vertx.setContext(null);
+        
       } catch (Exception e) {
         e.printStackTrace();
         throw e;

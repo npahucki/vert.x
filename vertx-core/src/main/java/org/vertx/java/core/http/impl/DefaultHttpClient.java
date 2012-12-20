@@ -51,11 +51,11 @@ public class DefaultHttpClient implements HttpClient {
   private static final Logger log = LoggerFactory.getLogger(HttpClientRequest.class);
 
   private final VertxInternal vertx;
-  private final Context ctx;
-  private final TCPSSLHelper tcpHelper;
+  private final EventLoopContext ctx;
+  private final TCPSSLHelper tcpHelper = new TCPSSLHelper();
   private ClientBootstrap bootstrap;
   private NioClientSocketChannelFactory channelFactory;
-  private Map<Channel, ClientConnection> connectionMap = new ConcurrentHashMap();
+  private Map<Channel, ClientConnection> connectionMap = new ConcurrentHashMap<Channel, ClientConnection>();
   private Handler<Exception> exceptionHandler;
   private int port = 80;
   private String host = "localhost";
@@ -68,35 +68,15 @@ public class DefaultHttpClient implements HttpClient {
 
   public DefaultHttpClient(VertxInternal vertx) {
     this.vertx = vertx;
-    ctx = vertx.getOrAssignContext();
     if (vertx.isWorker()) {
       throw new IllegalStateException("Cannot be used in a worker application");
     }
+    ctx = (EventLoopContext) vertx.getOrAssignContext();
     ctx.putCloseHook(this, new Runnable() {
       public void run() {
         close();
       }
     });
-    tcpHelper= new TCPSSLHelper();
-  }
-
-  public DefaultHttpClient(VertxInternal vertx, HttpClientParams params) {
-    this.vertx = vertx;
-    ctx = vertx.getOrAssignContext();
-    if (vertx.isWorker()) {
-      throw new IllegalStateException("Cannot be used in a worker application");
-    }
-    ctx.putCloseHook(this, new Runnable() {
-      public void run() {
-        close();
-      }
-    });
-    this.tcpHelper = params.getTCPHelper();
-    setMaxPoolSize(params.getMaxPoolSize());
-    setHost(params.getHost());
-    if (params.getPort() != -1) setPort(params.getPort());
-    setKeepAlive(params.isKeepAlive());
-    exceptionHandler(params.getExceptionHandler());
   }
 
   public void exceptionHandler(Handler<Exception> handler) {
@@ -363,22 +343,16 @@ public class DefaultHttpClient implements HttpClient {
   private void internalConnect(final Handler<ClientConnection> connectHandler, final Handler<Exception> connectErrorHandler) {
 
     if (bootstrap == null) {
+      // Share the event loop thread to also serve the HttpClient's network traffic.
       VertxWorkerPool pool = new VertxWorkerPool();
-      EventLoopContext ectx;
-      if (ctx instanceof EventLoopContext) {
-        //It always will be
-        ectx = (EventLoopContext)ctx;
-      } else {
-        ectx = null;
-      }
-      pool.addWorker(ectx.getWorker());
+      pool.addWorker(ctx.getWorker());
       Integer bossThreads = tcpHelper.getClientBossThreads();
       int threads = bossThreads == null ? 1 : bossThreads;
       channelFactory = new NioClientSocketChannelFactory(
-          vertx.getAcceptorPool(), threads, pool);
+          vertx.getAcceptorPool(), threads, pool, vertx.getTimer());
       bootstrap = new ClientBootstrap(channelFactory);
 
-      tcpHelper.checkSSL();
+      tcpHelper.checkSSL(vertx);
 
       bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
         public ChannelPipeline getPipeline() throws Exception {
@@ -442,26 +416,30 @@ public class DefaultHttpClient implements HttpClient {
           }
         });
         connectionMap.put(ch, conn);
-        Context.setContext(ctx);
+        vertx.setContext(ctx);
         connectHandler.handle(conn);
       }
     });
   }
 
-  private void failed(NioSocketChannel ch, final Handler<Exception> connectionExceptionHandler, final Throwable t) {
+  private void failed(final NioSocketChannel ch, final Handler<Exception> connectionExceptionHandler,
+                      final Throwable t) {
+    //ch.close();
+
     // If no specific exception handler is provided, fall back to the HttpClient's exception handler.
     final Handler<Exception> exHandler = connectionExceptionHandler == null ? exceptionHandler : connectionExceptionHandler;
 
     tcpHelper.runOnCorrectThread(ch, new Runnable() {
          public void run() {
            pool.connectionClosed();
+           ch.close();
          }
        });
 
     if (t instanceof Exception && exHandler != null) {
       tcpHelper.runOnCorrectThread(ch, new Runnable() {
         public void run() {
-          Context.setContext(ctx);
+          vertx.setContext(ctx);
           exHandler.handle((Exception) t);
         }
       });

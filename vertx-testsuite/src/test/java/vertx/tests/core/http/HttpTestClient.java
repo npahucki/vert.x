@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -191,49 +190,8 @@ public class HttpTestClient extends TestClientBase {
     tu.azzert(server.getReceiveBufferSize() == null);
     tu.azzert(server.getSendBufferSize() == null);
     tu.azzert(server.getTrafficClass() == null);
+    server.close();
     tu.testComplete();
-  }
-
-  public void testHttpClientParams() {
-    final HttpClientParams params = new HttpClientParams("localhost");
-    params.setBossThreads(1);
-    params.setConnectTimeout(2);
-    params.setKeyStorePassword("kpwd");
-    params.setKeyStorePath("kpath");
-    params.setMaxPoolSize(3);
-    params.setReceiveBufferSize(4);
-    params.setReuseAddress(true);
-    params.setSendBufferSize(5);
-    params.setSoLinger(true);
-    params.setSSL(true);
-    params.setTCPKeepAlive(true);
-    params.setTCPNoDelay(true);
-    params.setTrafficClass(6);
-    params.setTrustAll(true);
-    params.setTrustStorePassword("tpwd");
-    params.setTrustStorePath("tpath");
-
-
-    final SharedHttpClient shClient = vertx.createHttpClient(params);
-    tu.azzert(shClient.getBossThreads() == 1);
-    tu.azzert(shClient.getConnectTimeout() == 2);
-    tu.azzert(shClient.getKeyStorePassword().equals("kpwd"));
-    tu.azzert(shClient.getKeyStorePath().equals("kpath"));
-    tu.azzert(shClient.getMaxPoolSize() == 3);
-    tu.azzert(shClient.getReceiveBufferSize() == 4);
-    tu.azzert(shClient.isReuseAddress());
-    tu.azzert(shClient.getSendBufferSize() == 5);
-    tu.azzert(shClient.isSoLinger());
-    tu.azzert(shClient.isSSL());
-    tu.azzert(shClient.isTCPKeepAlive());
-    tu.azzert(shClient.isTCPNoDelay());
-    tu.azzert(shClient.getTrafficClass() == 6);
-    tu.azzert(shClient.isTrustAll());
-    tu.azzert(shClient.getTrustStorePassword().equals("tpwd"));
-    tu.azzert(shClient.getTrustStorePath().equals("tpath"));
-
-    tu.testComplete();
-
   }
 
   public void testServerAttributes() {
@@ -713,14 +671,15 @@ public class HttpTestClient extends TestClientBase {
         exception.set(event);
       }
     });
-    req.setTimeout(500);
+    req.setTimeout(800);
     req.end();
 
-    getVertx().setTimer(1000, new Handler<Long>() {
+    getVertx().setTimer(1500, new Handler<Long>() {
       @Override
       public void handle(Long event) {
         tu.azzert(exception.get() != null, "Expected an exception to be set");
-        tu.azzert(!(exception.get() instanceof TimeoutException), "Expected to end with timeout exception but ended with other exception: " + exception.get());
+        tu.azzert(!(exception.get() instanceof TimeoutException), 
+        		"Expected to not end with timeout exception, but did: " + exception.get());
         tu.checkContext();
         tu.testComplete();
       }
@@ -764,85 +723,42 @@ public class HttpTestClient extends TestClientBase {
     });
   }
 
-  public void testResponseTimesoutWhenIndicatedPeriodExpiresWithoutFullyReadingResponse() {
+  public void testRequestNotReceivedIfTimedout() {
     startServer(new Handler<HttpServerRequest>() {
-      public void handle(HttpServerRequest req) {
-        // Answer but, write the response very slowly.
-        req.response.statusCode = 200;
-        req.response.setChunked(true);
-        req.response.write("Some Data");
-        // Don't end, this should make the reading of the response timeout.
+      public void handle(final HttpServerRequest req) {
+        // Answer the request after a delay
+        vertx.setTimer(500, new Handler<Long>() {
+          public void handle(Long event) {
+            req.response.statusCode = 200;
+            req.response.end("OK");
+          }
+        });
       }
     });
 
-    getRequest(true, "GET", "timeoutTest", new Handler<HttpClientResponse>() {
+    final HttpClientRequest req = getRequest(true, "GET", "timeoutTest", new Handler<HttpClientResponse>() {
       public void handle(HttpClientResponse resp) {
-        // This should get called.
-        resp.setTimeout(500);
-        resp.endHandler(new Handler<Void>() {
-          @Override
-          public void handle(Void event) {
-            tu.azzert(false,"Unexpected call to repsonse end");
-          }
-        });
-        resp.exceptionHandler(new Handler<Exception>() {
-          @Override
-          public void handle(Exception exception) {
-            tu.azzert(exception != null, "Expected an exception to be set");
-            tu.azzert((exception instanceof TimeoutException), "Expected to end with timeout exception but ended with other exception: " + exception);
+        tu.azzert(false, "Response should not be handled");
+      }
+    });
+    req.exceptionHandler( new Handler<Exception>() {
+      @Override
+      public void handle(Exception event) {
+        tu.azzert(event instanceof TimeoutException, "Expected to end with timeout exception but ended with other exception: " + event);
+        //Delay a bit to let any response come back
+        vertx.setTimer(500, new Handler<Long>() {
+          public void handle(Long event) {
             tu.checkContext();
             tu.testComplete();
           }
         });
       }
-    }).end();
-  }
-
-  public void testResponseTimeoutCanceledWhenResponseEndsNormally() {
-    final AtomicReference<Exception> exception = new AtomicReference<>();
-    final AtomicBoolean ended  = new AtomicBoolean();
-
-
-    startServer(new Handler<HttpServerRequest>() {
-      public void handle(HttpServerRequest req) {
-        req.response.statusCode = 200;
-        req.response.end("Some Data");
-      }
     });
-
-    getRequest(true, "GET", "timeoutTest", new Handler<HttpClientResponse>() {
-      public void handle(HttpClientResponse resp) {
-        // This should get called.
-        resp.setTimeout(500);
-        resp.endHandler(new Handler<Void>() {
-          @Override
-          public void handle(Void event) {
-            ended.set(true);
-          }
-        });
-        resp.exceptionHandler(new Handler<Exception>() {
-          @Override
-          public void handle(Exception ex) {
-            exception.set(ex);
-          }
-        });
-      }
-    }).end();
-
-    getVertx().setTimer(1000, new Handler<Long>() { // wait longer than the indicated timeout to see if a timeoutexception occurs
-      @Override
-      public void handle(Long event) {
-        tu.azzert(exception.get() == null, "Did not expect any exception");
-        tu.azzert(ended.get(), "Expected to repsonse to end normally");
-        tu.checkContext();
-        tu.testComplete();
-      }
-    });
+    req.setTimeout(100);
+    req.end();
   }
 
   public void testUseRequestAfterComplete() {
-
-    final Buffer body = TestUtils.generateRandomBuffer(1000);
 
     startServer(new Handler<HttpServerRequest>() {
       public void handle(HttpServerRequest req) {
@@ -864,7 +780,6 @@ public class HttpTestClient extends TestClientBase {
       }
     };
     Buffer buff = new Buffer();
-    Map<String, String> map = new HashMap<>();
 
     try {
       req.end();
@@ -1145,7 +1060,6 @@ public class HttpTestClient extends TestClientBase {
       }
       req.end();
     }
-
   }
 
   private void writeChunk(final int remaining, final int chunkSize, final HttpClientRequest req, final Buffer totBuffer) {
@@ -1266,9 +1180,7 @@ public class HttpTestClient extends TestClientBase {
     }
   }
 
-
   public void testRequestWriteBuffer() {
-
     final Buffer body = TestUtils.generateRandomBuffer(1000);
 
     startServer(new Handler<HttpServerRequest>() {
@@ -1447,8 +1359,6 @@ public class HttpTestClient extends TestClientBase {
 
   public void testUseResponseAfterComplete() {
 
-    final Buffer body = TestUtils.generateRandomBuffer(1000);
-
     startServer(new Handler<HttpServerRequest>() {
       public void handle(HttpServerRequest req) {
         tu.checkContext();
@@ -1458,11 +1368,9 @@ public class HttpTestClient extends TestClientBase {
 
           }
         };
+        
         Buffer buff = new Buffer();
-        Map<String, String> map = new HashMap<>();
-
         HttpServerResponse resp = req.response;
-
         resp.end();
 
         try {
@@ -1578,7 +1486,6 @@ public class HttpTestClient extends TestClientBase {
         }
 
         tu.testComplete();
-
       }
     });
 
@@ -1589,8 +1496,6 @@ public class HttpTestClient extends TestClientBase {
     });
 
     req.end();
-
-
   }
 
   public void testResponseBodyBufferAtEnd() {
@@ -1618,7 +1523,6 @@ public class HttpTestClient extends TestClientBase {
 
     req.end();
   }
-
 
   public void testResponseBodyStringDefaultEncodingAtEnd() {
     testResponseBodyStringAtEnd(null);
@@ -1866,9 +1770,7 @@ public class HttpTestClient extends TestClientBase {
       }
     });
     req.end();
-
   }
-
 
   public void testResponseWriteBuffer() {
 
@@ -2332,10 +2234,15 @@ public class HttpTestClient extends TestClientBase {
         tu.testComplete();
       }
     });
-    req.exceptionHandler(new Handler<Exception>() {
-      public void handle(Exception e) {
-      }
-    });
+    // NOTE: If you set a request handler now and an error happens on the request, the error is reported to the
+    // request handler and NOT the client handler. Only if no handler is set on the request, or an error happens
+    // that is not in the context of a request will the client handler get called. I can't figure out why an empty
+    // handler was specified here originally, but if we want the client handler (specified above) to fire, we should
+    // not set an empty handler here. The alternative would be to move the logic
+//    req.exceptionHandler(new Handler<Exception>() {
+//      public void handle(Exception e) {
+//      }
+//    });
     req.end("foo");
   }
 

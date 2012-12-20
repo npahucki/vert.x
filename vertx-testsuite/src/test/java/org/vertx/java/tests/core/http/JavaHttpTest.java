@@ -56,16 +56,10 @@ public class JavaHttpTest extends TestBase {
     startTest(getMethodName());
   }
 
-  public void testHttpClientParams() {
-    startTest(getMethodName());
-  }
-
   @Test
   public void testServerDefaults() throws Exception {
     startTest(getMethodName());
   }
-
-
 
   @Test
   public void testServerAttributes() throws Exception {
@@ -120,6 +114,7 @@ public class JavaHttpTest extends TestBase {
     });
 
     assertTrue(latch.await(5, TimeUnit.SECONDS));
+    vertx.stop();
   }
 
   public void testSimpleGET() {
@@ -498,18 +493,9 @@ public class JavaHttpTest extends TestBase {
     startTest(getMethodName());
   }
 
-  public void testResponseTimesoutWhenIndicatedPeriodExpiresWithoutFullyReadingResponse() {
+  public void testRequestNotReceivedIfTimedout() {
     startTest(getMethodName());
   }
-
-  public void testResponseTimeoutCanceledWhenResponseEndsNormally() {
-    startTest(getMethodName());
-  }
-
-// This really can't be tested since I don't know how I would simulate an error reading the response.
-//  public void testResponseTimeoutCanceledWhenAnotherResponseExceptionOccurs() {
-//    startTest(getMethodName());
-//  }
 
   @Test
   // Client trusts all server certs

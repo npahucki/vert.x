@@ -62,8 +62,15 @@ public class DefaultSockJSServer implements SockJSServer {
         }
       }
     });
-
-    httpServer.requestHandler(rm);
+    httpServer.requestHandler(new Handler<HttpServerRequest>() {
+      @Override
+      public void handle(HttpServerRequest req) {
+        if (log.isTraceEnabled()) {
+          log.trace("Got request in sockjs server: " + req.uri);
+        }
+        rm.handle(req);
+      }
+    });
     httpServer.websocketHandler(wsMatcher);
   }
 
@@ -77,7 +84,7 @@ public class DefaultSockJSServer implements SockJSServer {
       config.putBoolean("insert_JSESSIONID", true);
     }
     if (config.getNumber("heartbeat_period") == null) {
-      config.putNumber("heartbeat_period", 25l * 1000);
+      config.putNumber("heartbeat_period", 5l * 1000);
     }
     if (config.getNumber("max_bytes_streaming") == null) {
       config.putNumber("max_bytes_streaming", 128 * 1024);

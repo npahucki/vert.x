@@ -28,6 +28,7 @@ import org.vertx.java.core.sockjs.SockJSSocket;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The SockJS session implementation.
@@ -136,7 +137,10 @@ class Session extends SockJSSocket implements Shareable {
     this.endHandler = endHandler;
   }
 
-  public synchronized void shutdown() {
+  // Actually close the session - when the user calls close() the session actually continues to exist until timeout
+  // Yes, I know it's weird but that's the way SockJS likes it.
+  private void doClose() {
+    super.close(); // We must call this or handlers don't get unregistered and we get a leak
     if (heartbeatID != -1) {
       vertx.cancelTimer(heartbeatID);
     }
@@ -152,6 +156,12 @@ class Session extends SockJSSocket implements Shareable {
     }
   }
 
+  public synchronized void shutdown() {
+    doClose();
+  }
+
+  // When the user calls close() we don't actually close the session - unless it's a websocket one
+  // Yes, SockJS is weird, but it's hard to work out expected server behaviour when there's no spec
   public synchronized void close() {
     if (endHandler != null) {
       endHandler.handle(null);
@@ -166,13 +176,22 @@ class Session extends SockJSSocket implements Shareable {
     return closed;
   }
 
-  synchronized void resetListener() {
+  synchronized void resetListener(boolean setTimer) {
     listener = null;
-    setTimer();
+    if (setTimer) {
+      setTimer();
+    }
+  }
+
+  private void cancelTimer() {
+    if (timeoutTimerID != -1) {
+      vertx.cancelTimer(timeoutTimerID);
+    }
   }
 
   private void setTimer() {
-    if (timeout != -1 && timeoutTimerID == -1) {
+    if (timeout != -1) {
+      cancelTimer();
       timeoutTimerID = vertx.setTimer(timeout, new Handler<Long>() {
         public void handle(Long id) {
           vertx.cancelTimer(heartbeatID);
@@ -210,10 +229,7 @@ class Session extends SockJSSocket implements Shareable {
       lst.close();
     } else {
 
-      if (timeoutTimerID != -1) {
-        vertx.cancelTimer(timeoutTimerID);
-        timeoutTimerID = -1;
-      }
+      cancelTimer();
 
       this.listener = lst;
 
@@ -222,8 +238,6 @@ class Session extends SockJSSocket implements Shareable {
         sockHandler.handle(this);
         handleCalled = true;
       }
-
-      setTimer();
 
       if (listener != null) {
         if (closed) {
