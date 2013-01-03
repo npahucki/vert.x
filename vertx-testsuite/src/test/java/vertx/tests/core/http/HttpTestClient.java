@@ -21,7 +21,6 @@ import org.vertx.java.core.SimpleHandler;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.*;
-import org.vertx.java.core.net.NetServer;
 import org.vertx.java.framework.TestClientBase;
 import org.vertx.java.framework.TestUtils;
 
@@ -74,6 +73,7 @@ public class HttpTestClient extends TestClientBase {
 
   public void testClientDefaults() {
     tu.azzert(!client.isSSL());
+    tu.azzert(client.isVerifyHost());
     tu.azzert(client.getKeyStorePassword() == null);
     tu.azzert(client.getKeyStorePath() == null);
     tu.azzert(client.getTrustStorePassword() == null);
@@ -95,6 +95,12 @@ public class HttpTestClient extends TestClientBase {
 
     tu.azzert(client.setSSL(true) == client);
     tu.azzert(client.isSSL());
+
+    tu.azzert(client.setVerifyHost(false) == client);
+    tu.azzert(!client.isVerifyHost());
+
+    tu.azzert(client.setVerifyHost(true) == client);
+    tu.azzert(client.isVerifyHost());
 
     String pwd = TestUtils.randomUnicodeString(10);
     tu.azzert(client.setKeyStorePassword(pwd) == client);
@@ -177,7 +183,7 @@ public class HttpTestClient extends TestClientBase {
   }
 
   public void testServerDefaults() {
-    NetServer server = vertx.createNetServer();
+    HttpServer server = vertx.createHttpServer();
     tu.azzert(!server.isSSL());
     tu.azzert(server.getKeyStorePassword() == null);
     tu.azzert(server.getKeyStorePath() == null);
