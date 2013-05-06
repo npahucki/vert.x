@@ -48,7 +48,6 @@ subprojects {
   group = rootProject.group
   
   repositories {
-    maven { url "http://uspetddmaven001.autodesk.com:8081/nexus/content/repositories/thirdparty/" }
     mavenCentral()
   }
   
