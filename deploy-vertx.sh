@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=1.3.1.adsk_01
+VERSION=1.3.1.adsk_02
 REPOURL=http://uspetddmaven001.autodesk.com:8081/nexus/content/repositories/thirdparty/
 LOCAL_REPO=/Users/npahucki/.m2/repository
 
