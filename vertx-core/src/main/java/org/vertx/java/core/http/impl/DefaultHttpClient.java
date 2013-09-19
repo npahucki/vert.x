@@ -510,6 +510,12 @@ public class DefaultHttpClient implements HttpClient {
       if (conn != null && t instanceof Exception) {
         tcpHelper.runOnCorrectThread(ch, new Runnable() {
           public void run() {
+            try {
+              if (ch.isOpen()) {
+                ch.close();
+              }
+            } catch (Throwable ignore) {
+            }
             conn.handleException((Exception) t);
           }
         });
