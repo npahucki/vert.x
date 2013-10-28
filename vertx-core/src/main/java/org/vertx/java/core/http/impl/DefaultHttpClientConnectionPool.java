@@ -4,6 +4,7 @@ import org.vertx.java.core.Handler;
 import org.vertx.java.core.impl.ConnectionPool;
 import org.vertx.java.core.impl.Context;
 
+import java.util.Iterator;
 import java.util.Queue;
 
 /**
@@ -47,10 +48,17 @@ final class DefaultHttpClientConnectionPool extends ConnectionPool<ClientConnect
     if (!available.isEmpty()) {
       final boolean useOccupiedConnections = !disableUsingOccupiedConnections && connectionCount >= maxPoolSize;
 
-      for (final ClientConnection c : available) {
+      final Iterator<ClientConnection> clientConnectionIterator = available.iterator();
+      while (clientConnectionIterator.hasNext()){
+        final ClientConnection c = clientConnectionIterator.next();
+        if(c.isClosed()){
+          // remove closed connections from pool
+          clientConnectionIterator.remove();
+          continue;
+        }
 
         // Ideal situation for all cases, a cached but unoccupied connection.
-        if (c.getOutstandingRequestCount() < 1 && !c.isClosed()) {
+        if (c.getOutstandingRequestCount() < 1) {
           conn = c;
           break;
         }
@@ -60,7 +68,7 @@ final class DefaultHttpClientConnectionPool extends ConnectionPool<ClientConnect
           // even though we don't have any good way to know how long the requests in the front of this one might take
           // it's still better than the old behavior which seems to glob all the requests into the first connection
           // in the available list.
-          if (conn == null || (conn.getOutstandingRequestCount() > c.getOutstandingRequestCount() && !c.isClosed())) {
+          if (conn == null || conn.getOutstandingRequestCount() > c.getOutstandingRequestCount()) {
             conn = c;
           }
         }
