@@ -1,6 +1,6 @@
 #!/bin/bash
-VERSION=1.3.1.adsk_02
-REPOURL=http://uspetddmaven001.autodesk.com:8081/nexus/content/repositories/thirdparty/
+VERSION=1.3.1.adsk_04
+REPOURL=http://a360nexus.autodesk.com/nexus/content/repositories/thirdparty/
 LOCAL_REPO=/Users/npahucki/.m2/repository
 
 mvn deploy:deploy-file -Dfile=$LOCAL_REPO/org/vert-x/vertx-lang-java/$VERSION/vertx-lang-java-$VERSION.jar -DpomFile=$LOCAL_REPO/org/vert-x/vertx-lang-java/$VERSION/vertx-lang-java-$VERSION.pom  -DrepositoryId=snapshots -Durl=$REPOURL
