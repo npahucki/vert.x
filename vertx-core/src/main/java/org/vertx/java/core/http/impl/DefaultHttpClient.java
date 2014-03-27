@@ -86,6 +86,24 @@ public class DefaultHttpClient implements HttpClient {
     return pool.getMaxPoolSize();
   }
 
+  public DefaultHttpClient setMaxWaiterQueueSize(int maxWaiterQueueSize) {
+    pool.setMaxWaiterQueueSize(maxWaiterQueueSize);
+    return this;
+  }
+
+  public int getMaxWaiterQueueSize() {
+    return pool.getMaxWaiterQueueSize();
+  }
+
+  public DefaultHttpClient setConnectionMaxOutstandingRequestCount(int connectionMaxOutstandingRequestCount) {
+    pool.setConnectionMaxOutstandingRequestCount(connectionMaxOutstandingRequestCount);
+    return this;
+  }
+
+  public int getConnectionMaxOutstandingRequestCount() {
+    return pool.getConnectionMaxOutstandingRequestCount();
+  }
+
   /**
    * @see DefaultHttpClientConnectionPool#setDisableUsingOccupiedConnections
    */

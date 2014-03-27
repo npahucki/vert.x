@@ -68,7 +68,7 @@ final class DefaultHttpClientConnectionPool extends ConnectionPool<ClientConnect
           // even though we don't have any good way to know how long the requests in the front of this one might take
           // it's still better than the old behavior which seems to glob all the requests into the first connection
           // in the available list.
-          if (conn == null || conn.getOutstandingRequestCount() > c.getOutstandingRequestCount()) {
+          if (conn == null || (conn.getOutstandingRequestCount() > c.getOutstandingRequestCount() && c.getOutstandingRequestCount() < getConnectionMaxOutstandingRequestCount())) {
             conn = c;
           }
         }
