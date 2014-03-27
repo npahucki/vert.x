@@ -133,11 +133,13 @@ public abstract class ConnectionPool<T> {
   /**
    * Return a connection to the pool so it can be used by others.
    */
-  public void returnConnection(final T conn) {
-    Waiter waiter;
+  public void returnConnection(final T conn, final boolean fullyOccupied) {
+    Waiter waiter = null;
     synchronized (this) {
       //Return it to the pool
-      waiter = waiters.poll();
+      if(!fullyOccupied) {
+        waiter = waiters.poll();
+      }
       if (waiter == null) {
         available.add(conn);
       }

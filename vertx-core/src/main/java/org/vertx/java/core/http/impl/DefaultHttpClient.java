@@ -360,7 +360,7 @@ public class DefaultHttpClient implements HttpClient {
   }
 
   void returnConnection(final ClientConnection conn) {
-    pool.returnConnection(conn);
+    pool.returnConnection(conn, conn.getOutstandingRequestCount() >= pool.getConnectionMaxOutstandingRequestCount());
   }
 
   void handleException(Exception e) {
