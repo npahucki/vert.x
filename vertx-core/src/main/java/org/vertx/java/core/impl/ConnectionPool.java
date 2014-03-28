@@ -36,7 +36,6 @@ public abstract class ConnectionPool<T> {
   private int maxPoolSize = 1;
   private int connectionCount;
   private int maxWaiterQueueSize = -1;
-  private int connectionMaxOutstandingRequestCount = 100;
   private final Queue<Waiter> waiters = new LinkedList<>();
 
   /**
@@ -60,14 +59,6 @@ public abstract class ConnectionPool<T> {
 
   public int getMaxWaiterQueueSize() {
     return maxWaiterQueueSize;
-  }
-
-  public void setConnectionMaxOutstandingRequestCount(int connectionMaxOutstandingRequestCount) {
-    this.connectionMaxOutstandingRequestCount = connectionMaxOutstandingRequestCount;
-  }
-
-  public int getConnectionMaxOutstandingRequestCount() {
-    return connectionMaxOutstandingRequestCount;
   }
 
   public synchronized void report() {

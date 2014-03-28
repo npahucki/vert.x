@@ -70,6 +70,7 @@ class ClientConnection extends AbstractConnection {
   private final Queue<DefaultHttpClientRequest> requests = new ConcurrentLinkedQueue();
   private volatile DefaultHttpClientResponse currentResponse;
   private DefaultWebSocket ws;
+  private int connectionMaxOutstandingRequest = -1;
 
   void toWebSocket(final String uri,
                    final Handler<WebSocket> wsConnect,
@@ -159,6 +160,15 @@ class ClientConnection extends AbstractConnection {
   int getOutstandingRequestCount() {
     return requests.size();
   }
+
+  public void setConnectionMaxOutstandingRequestCount(final int connectionMaxOutstandingRequestCount) {
+    connectionMaxOutstandingRequest = connectionMaxOutstandingRequestCount;
+  }
+
+  public boolean isFullyOccupied() {
+    return connectionMaxOutstandingRequest != -1 && requests.size() >= connectionMaxOutstandingRequest;
+  }
+
 
   //TODO - combine these with same in ServerConnection and NetSocket
 
