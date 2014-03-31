@@ -68,9 +68,10 @@ class ClientConnection extends AbstractConnection {
   private volatile DefaultHttpClientRequest currentRequest;
   // Requests can be pipelined so we need a queue to keep track of requests
   private final Queue<DefaultHttpClientRequest> requests = new ConcurrentLinkedQueue();
+  // the maximum number pipelined requests. leave it as "-1" to unlimit the number.
+  private int maxOutstandingRequest = -1;
   private volatile DefaultHttpClientResponse currentResponse;
   private DefaultWebSocket ws;
-  private int connectionMaxOutstandingRequest = -1;
 
   void toWebSocket(final String uri,
                    final Handler<WebSocket> wsConnect,
@@ -161,12 +162,12 @@ class ClientConnection extends AbstractConnection {
     return requests.size();
   }
 
-  public void setConnectionMaxOutstandingRequestCount(final int connectionMaxOutstandingRequestCount) {
-    connectionMaxOutstandingRequest = connectionMaxOutstandingRequestCount;
+  public void setMaxOutstandingRequestCount(final int maxOutstandingRequestCount) {
+    maxOutstandingRequest = maxOutstandingRequestCount;
   }
 
   public boolean isFullyOccupied() {
-    return connectionMaxOutstandingRequest != -1 && requests.size() >= connectionMaxOutstandingRequest;
+    return maxOutstandingRequest != -1 && requests.size() >= maxOutstandingRequest;
   }
 
 

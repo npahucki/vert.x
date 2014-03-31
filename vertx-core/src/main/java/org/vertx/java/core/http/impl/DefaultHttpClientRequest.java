@@ -305,6 +305,8 @@ public class DefaultHttpClientRequest implements HttpClientRequest {
       client.getConnection(new Handler<ClientConnection>() {
         public void handle(ClientConnection conn) {
           if(exceptionOccurred){
+            // The request already timed out before it has left the pool waiter queue
+            // So return it
             conn.close();
           } else if (!conn.isClosed()) {
             connected(conn);

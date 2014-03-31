@@ -462,7 +462,7 @@ public class DefaultHttpClient implements HttpClient {
             pool.connectionClosed();
           }
         });
-        conn.setConnectionMaxOutstandingRequestCount(connectionMaxOutstandingRequest);
+        conn.setMaxOutstandingRequestCount(connectionMaxOutstandingRequest);
         connectionMap.put(ch, conn);
         vertx.setContext(ctx);
         connectHandler.handle(conn);

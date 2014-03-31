@@ -84,6 +84,7 @@ public abstract class ConnectionPool<T> {
         if(maxWaiterQueueSize > waiters.size() || maxWaiterQueueSize == -1){
           waiters.add(new Waiter(handler, connectExceptionHandler, context));  
         } else {
+          // There are too many requests in waiter queue. Return exception to avoid OOM.
           connectExceptionHandler.handle(new Exception("Too many requests to be handled. The request will be cancelled to avoid OOM."));
         }        
       }
@@ -127,10 +128,11 @@ public abstract class ConnectionPool<T> {
   public void returnConnection(final T conn, final boolean fullyOccupied) {
     Waiter waiter = null;
     synchronized (this) {
-      //Return it to the pool
+      // prevent connection from taking more requests if it's fully occupied.
       if(!fullyOccupied) {
         waiter = waiters.poll();
       }
+      //Return it to the pool
       if (waiter == null) {
         available.add(conn);
       }
