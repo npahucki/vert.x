@@ -85,7 +85,7 @@ public abstract class ConnectionPool<T> {
           waiters.add(new Waiter(handler, connectExceptionHandler, context));  
         } else {
           // There are too many requests in waiter queue. Return exception to avoid OOM.
-          connectExceptionHandler.handle(new Exception("Too many requests to be handled. The request will be cancelled to avoid OOM."));
+          connectExceptionHandler.handle(new ConnectionPoolTooBusyException("Too many requests to be handled. The request will be cancelled to avoid OOM."));
         }        
       }
     }
