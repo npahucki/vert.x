@@ -125,13 +125,10 @@ public abstract class ConnectionPool<T> {
   /**
    * Return a connection to the pool so it can be used by others.
    */
-  public void returnConnection(final T conn, final boolean fullyOccupied) {
-    Waiter waiter = null;
+  public void returnConnection(final T conn) {
+    Waiter waiter;
     synchronized (this) {
-      // prevent connection from taking more requests if it's fully occupied.
-      if(!fullyOccupied) {
-        waiter = waiters.poll();
-      }
+      waiter = waiters.poll();
       //Return it to the pool
       if (waiter == null) {
         available.add(conn);

@@ -361,7 +361,10 @@ public class DefaultHttpClient implements HttpClient {
   }
 
   void returnConnection(final ClientConnection conn) {
-    pool.returnConnection(conn, conn.isFullyOccupied());
+    // prevent connection from taking more requests if it's fully occupied.
+    if(!conn.isFullyOccupied()) {
+      pool.returnConnection(conn);
+    } 
   }
 
   void handleException(Exception e) {
