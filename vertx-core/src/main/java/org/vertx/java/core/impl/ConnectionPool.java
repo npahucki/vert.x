@@ -35,6 +35,7 @@ public abstract class ConnectionPool<T> {
   private final Queue<T> available = new LinkedList<>();
   private int maxPoolSize = 1;
   private int connectionCount;
+  private int maxWaiterQueueSize = -1;
   private final Queue<Waiter> waiters = new LinkedList<>();
 
   /**
@@ -50,6 +51,14 @@ public abstract class ConnectionPool<T> {
    */
   public int getMaxPoolSize() {
     return maxPoolSize;
+  }
+
+  public void setMaxWaiterQueueSize(int maxWaiterQueueSize) {
+    this.maxWaiterQueueSize = maxWaiterQueueSize;
+  }
+
+  public int getMaxWaiterQueueSize() {
+    return maxWaiterQueueSize;
   }
 
   public synchronized void report() {
@@ -72,7 +81,12 @@ public abstract class ConnectionPool<T> {
           break outer;
         }
         // Add to waiters
-        waiters.add(new Waiter(handler, connectExceptionHandler, context));
+        if(maxWaiterQueueSize > waiters.size() || maxWaiterQueueSize == -1){
+          waiters.add(new Waiter(handler, connectExceptionHandler, context));  
+        } else {
+          // There are too many requests in waiter queue. Return exception to avoid OOM.
+          connectExceptionHandler.handle(new ConnectionPoolTooBusyException("Too many requests to be handled. The request will be cancelled to avoid OOM."));
+        }        
       }
     }
     // We do this outside the sync block to minimise the critical section
@@ -114,8 +128,8 @@ public abstract class ConnectionPool<T> {
   public void returnConnection(final T conn) {
     Waiter waiter;
     synchronized (this) {
-      //Return it to the pool
       waiter = waiters.poll();
+      //Return it to the pool
       if (waiter == null) {
         available.add(conn);
       }

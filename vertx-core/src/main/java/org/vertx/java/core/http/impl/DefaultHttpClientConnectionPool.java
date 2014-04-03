@@ -63,6 +63,12 @@ final class DefaultHttpClientConnectionPool extends ConnectionPool<ClientConnect
           break;
         }
 
+        // prevent a fully occupied from picking more requests since in this case the new incoming requests will probably time out.
+        if(c.isFullyOccupied()){
+            clientConnectionIterator.remove();
+            continue;
+        }
+
         if (useOccupiedConnections) {
           // Otherwise, lets try to pick the connection that has the least amount of outstanding requests on it,
           // even though we don't have any good way to know how long the requests in the front of this one might take

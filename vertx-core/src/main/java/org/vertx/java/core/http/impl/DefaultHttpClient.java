@@ -59,6 +59,7 @@ public class DefaultHttpClient implements HttpClient {
   private String host = "localhost";
   private final ConnectionPool<ClientConnection> pool = new DefaultHttpClientConnectionPool(this);
   private boolean keepAlive = true;
+  private int connectionMaxOutstandingRequest = -1;
 
   public DefaultHttpClient(VertxInternal vertx) {
     this.vertx = vertx;
@@ -84,6 +85,24 @@ public class DefaultHttpClient implements HttpClient {
 
   public int getMaxPoolSize() {
     return pool.getMaxPoolSize();
+  }
+
+  public DefaultHttpClient setMaxWaiterQueueSize(int maxWaiterQueueSize) {
+    pool.setMaxWaiterQueueSize(maxWaiterQueueSize);
+    return this;
+  }
+
+  public int getMaxWaiterQueueSize() {
+    return pool.getMaxWaiterQueueSize();
+  }
+
+  public DefaultHttpClient setConnectionMaxOutstandingRequestCount(int connectionMaxOutstandingRequestCount) {
+    connectionMaxOutstandingRequest = connectionMaxOutstandingRequestCount;
+    return this;
+  }
+
+  public int getConnectionMaxOutstandingRequestCount() {
+    return connectionMaxOutstandingRequest;
   }
 
   /**
@@ -342,7 +361,10 @@ public class DefaultHttpClient implements HttpClient {
   }
 
   void returnConnection(final ClientConnection conn) {
-    pool.returnConnection(conn);
+    // prevent connection from taking more requests if it's fully occupied.
+    if(!conn.isFullyOccupied()) {
+      pool.returnConnection(conn);
+    } 
   }
 
   void handleException(Exception e) {
@@ -443,6 +465,7 @@ public class DefaultHttpClient implements HttpClient {
             pool.connectionClosed();
           }
         });
+        conn.setMaxOutstandingRequestCount(connectionMaxOutstandingRequest);
         connectionMap.put(ch, conn);
         vertx.setContext(ctx);
         connectHandler.handle(conn);
