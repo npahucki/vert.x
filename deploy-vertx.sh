@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=1.3.1.adsk_04
+VERSION=1.3.1.adsk_05
 REPOURL=http://a360nexus.autodesk.com/nexus/content/repositories/thirdparty/
 LOCAL_REPO=/Users/npahucki/.m2/repository
 
